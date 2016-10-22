@@ -208,6 +208,7 @@ var List = React.createClass({
     this._fetchData(page);
   },
 
+  // 列表底部
   _renderFooter() {
     if (!this._hasMore() && cachedResults.total !==0 ) {
       return (
@@ -230,11 +231,11 @@ var List = React.createClass({
     )
   },
 
+  // 下拉刷新
   _onRefresh () {
     if (!this._hasMore() || this.state.isRefreshing) {
       return;
     }
-
     this._fetchData(0)
   },
 

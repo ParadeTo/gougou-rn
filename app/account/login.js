@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
-var Icon = require('react-native-vector-icons/Ionicons');
 var Button = require('react-native-button').default
-var CountDown = require('react-native-sk-countdown').CountDownText
+var CountDown = require('../common/countdown.js')
 var config = require('../common/config.js')
 var request = require('../common/request.js')
 
@@ -23,16 +22,42 @@ var Account = React.createClass({
     }
   },
 
+  // 验证用户，即登录
   _submit() {
+    var that = this;
+    var phoneNumber = this.state.phoneNumber
+    var verifyCode = this.state.verifyCode
+    if (!phoneNumber || !verifyCode) {
+      return AlertIOS.alert('手机号或验证码不能为空')
+    }
+    var body = {
+      phoneNumber: phoneNumber,
+      verifyCode: verifyCode
+    }
 
+    var verifyUrl = config.api.base + config.api.verify
+    request.post(verifyUrl, body)
+      .then((data) => {
+        if (data && data.success) {
+          that.props.afterLogin(data.data)
+        }
+        else {
+          AlertIOS.alert('登录失败')
+        }
+      })
+      .catch((err) => {
+        AlertIOS.alert('登录失败')
+      })
   },
 
+  // 显示验证码输入框
   _showVerifyCode() {
     this.setState({
       codeSent:true
     })
   },
 
+  // 结束倒计时，传递给countdown去调用
   _countingDone() {
     this.setState({
       countingDone:true
@@ -40,6 +65,13 @@ var Account = React.createClass({
   },
 
   _sendVerifyCode() {
+    // 开始倒计时
+    if(this.state.countingDone) {
+      this.setState({
+        countingDone:false
+      })
+    }
+
     var that = this;
     var phoneNumber = this.state.phoneNumber
     if (!phoneNumber) {
@@ -53,6 +85,7 @@ var Account = React.createClass({
     request.post(signupUrl, body)
       .then((data) => {
         if (data && data.success) {
+          // 显示验证码输入框
           that._showVerifyCode();
         }
         else {
@@ -80,42 +113,36 @@ var Account = React.createClass({
                 phoneNumber:text
               })
             }}/>
-            {
-              this.state.codeSent
-              ?
-              <View style={styles.verifyCodeBox}>
-                <TextInput
-                  placeholder="输入验证码"
-                  autoCapitalize={'none'}
-                  autoCorrect={false}
-                  keyboardType={"number-pad"}
-                  style={styles.inputField}
-                  onChangeText={(text) => {
-                    this.setState({
-                      verifyCode:text
-                    })
-                  }}/>
-                  {
-                    this.state.countingDone
-                    ?
-                    <Button style={styles.countBtn}
-                      onPress={this._sendVerifyCode}>获取验证码</Button>
-                    :
-                    <CountDown
-                      style={styles.countBtn}
-                      countType='seconds' // 计时类型：seconds / date
-                      auto={true} // 自动开始
-                      afterEnd={this._countingDone} // 结束回调
-                      timeLeft={60} // 正向计时 时间起点为0秒
-                      step={-1} // 计时步长，以秒为单位，正数则为正计时，负数为倒计时
-                      startText='获取验证码' // 开始的文本
-                      endText='获取验证码' // 结束的文本
-                      intervalText={(sec) => sec + '秒重新获取'} // 定时的文本回调
-                      />
-                  }
-              </View>
-              : null
-            }
+          {
+            this.state.codeSent
+            ?
+            <View style={styles.verifyCodeBox}>
+              <TextInput
+                placeholder="输入验证码"
+                autoCapitalize={'none'}
+                autoCorrect={false}
+                keyboardType={"number-pad"}
+                style={styles.inputField}
+                onChangeText={(text) => {
+                  this.setState({
+                    verifyCode:text
+                  })
+                }}/>
+              {
+                this.state.countingDone
+                ?
+                <Button style={styles.countBtn}
+                  onPress={this._sendVerifyCode}>获取验证码</Button>
+                :
+                <CountDown
+                  style={styles.countBtn}
+                  time={60}
+                  afterEnd={this._countingDone}
+                />
+              }
+            </View>
+            : null
+          }
             {
               this.state.codeSent
               ?
@@ -149,7 +176,7 @@ const styles = StyleSheet.create({
     textAlign:'center'
   },
   inputField:{
-    marginTop:5,
+    // marginTop:5,
     flex:1,
     height:40,
     padding:5,
@@ -163,16 +190,19 @@ const styles = StyleSheet.create({
   verifyCodeBox:{
     marginTop:10,
     flexDirection:'row',
+    alignItems:'center',
     justifyContent:'space-between'
   },
   countBtn: {
     width:110,
     height:40,
-    padding:10,
+    paddingTop:10,
+    paddingBottom:10,
     marginLeft:8,
-    backgroundColor:'transparent',
+    backgroundColor:'#ee735c',
+    color:'#fff',
     borderColor:'#ee735c',
-    textAlign:'left',
+    textAlign:'center',
     fontWeight:'600',
     fontSize:15,
     borderRadius:2
