@@ -1,0 +1,21 @@
+dependencies: \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Modules/RCTDevMenu.m \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Modules/RCTDevMenu.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTBridge.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTBridgeDelegate.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTJavaScriptLoader.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTBridgeModule.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTDefines.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTFrameUpdate.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTInvalidating.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTAssert.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTBridge+Private.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTEventDispatcher.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTKeyCommands.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTLog.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Profiler/RCTProfile.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTRootView.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Modules/RCTSourceCode.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTUtils.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTWebSocketProxy.h \
+  /Users/ayou/Workspace/gougou-rn/client/node_modules/react-native/React/Base/RCTWebSocketProxyDelegate.h
