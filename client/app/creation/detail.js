@@ -431,9 +431,7 @@ var Detail = React.createClass({
           automaticallyAdjustContentInsets={false}
         />
         <Modal
-          animationType="fade"
-          visible={this.state.modalVisible}
-          onRequestClose={()=>{ths._setModalVisible(false)}}>
+          visible={this.state.modalVisible}>
           <View style={styles.modalContainer}>
             <Icon
               onPress={this._closeModal}

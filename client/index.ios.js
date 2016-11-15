@@ -26,7 +26,7 @@ var rnDemo = React.createClass({
   getInitialState () {
     return {
       user: null,
-      selectedTab: 'list',
+      selectedTab: 'account',
       logined: false
     }
   },
@@ -70,6 +70,14 @@ var rnDemo = React.createClass({
 
   componentDidMount() {
     this._asyncAppStatus()
+  },
+
+  _logout() {
+    AsyncStorage.removeItem('user')
+    this.setState({
+      logined:false,
+      user:null
+    })
   },
 
   render () {
@@ -129,7 +137,7 @@ var rnDemo = React.createClass({
               presses: this.state.presses + 1
             });
           }}>
-          <Account/>
+          <Account user={this.state.user} logout={this._logout}/>
           </Icon.TabBarItem>
       </TabBarIOS>
     );
