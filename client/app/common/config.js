@@ -1,5 +1,5 @@
 'use strict'
-
+var debug = false
 module.exports = {
   header : {
     method: 'POST',
@@ -9,7 +9,7 @@ module.exports = {
     }
   },
   api:{
-    base:'http://rap.taobao.org/mockjs/8417/',
+    base:debug?'http://rap.taobao.org/mockjs/8417/':'http://localhost:1234/',
     creations:'api/creations',
     up:'api/up',
     comments:'api/comments',
@@ -19,7 +19,8 @@ module.exports = {
     signature:'api/signature',
   },
   qiniu:{
-    upload:'http://upload.qiniu.com/'
+    upload:'http://upload.qiniu.com/',
+    url: 'http://ofafv8os7.bkt.clouddn.com/'
   },
  CLOUDINARY: {
     'cloud_name': 'dis869jhd',

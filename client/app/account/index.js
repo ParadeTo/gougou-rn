@@ -48,6 +48,10 @@ function avatar(id,type) {
   return config.CLOUDINARY.base + '/' + type + '/upload/' + id
 }
 
+function avatarQiniu(key) {
+  return config.qiniu.url + key;
+}
+
 var Account = React.createClass({
   getInitialState () {
     var user = this.props.user || {}
@@ -97,16 +101,18 @@ var Account = React.createClass({
       //  生成七牛签名并上传图片
       var accessToken = this.state.user.accessToken
       var  uri = res.uri
-      var key = uuid.v4() + '.png'
+      var key = uuid.v4() + '.jpeg'
       that._getQiniuToken(accessToken,key)
         .then(data => {
+          console.log(data)
           if (data && data.success) {
             var token = data.data
             var body = new FormData()
 
             body.append('token',token)
+            body.append('key',key)
             body.append('file',{
-              type:'image/png',
+              type:'image/jpeg',
               uri:uri,
               name:key
             })
@@ -118,6 +124,7 @@ var Account = React.createClass({
 
   // 上传图片到七牛
   _upload(body) {
+    console.log(body)
     var that = this
     var xhr = new XMLHttpRequest()
     var url = config.qiniu.upload
@@ -148,10 +155,10 @@ var Account = React.createClass({
         console.log("parse fails")
       }
 
-      if (response && response.public_id) {
+      if (response && response.key) {
         var user = this.state.user
         console.log(response)
-        user.avatar = response.public_id
+        user.avatar = response.key
         that.setState({
           user: user, // 这个貌似可以去掉
           avatarProgress: 0,
@@ -246,7 +253,7 @@ var Account = React.createClass({
           user.avatar
           ?
           <TouchableOpacity onPress={this._pickPhoto}>
-            <Image source={{uri: avatar(user.avatar,'image')}} style={styles.avatarContainer}>
+            <Image source={{uri: avatarQiniu(user.avatar)}} style={styles.avatarContainer}>
               <View style={styles.avatarBox}>
                 {
                   this.state.avatarUploading ?
@@ -257,7 +264,7 @@ var Account = React.createClass({
                     progress={this.state.avatarProgress} />
                     :
                   <Image
-                    source={{uri:avatar(user.avatar,'image')}}
+                    source={{uri:avatarQiniu(user.avatar)}}
                     style={styles.avatar}/>
                 }
               </View>
