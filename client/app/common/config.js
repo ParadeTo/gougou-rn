@@ -17,6 +17,17 @@ module.exports = {
     verify:'api/u/verify',
     update:'api/u/update',
     signature:'api/signature',
-
+  },
+  qiniu:{
+    upload:'http://upload.qiniu.com/'
+  },
+ CLOUDINARY: {
+    'cloud_name': 'dis869jhd',
+    'api_key': '541635888437885',
+    'api_secret': 'g6rM2H_GFBiL1-IRpX82NyD8uc8',
+    'base': 'http://res.cloudinary.com/dis869jhd ',
+    'image': 'https://api.cloudinary.com/v1_1/dis869jhd/image/upload',
+    'video':   'https://api.cloudinary.com/v1_1/dis869jhd/video/upload',
+    'audio':   'https://api.cloudinary.com/v1_1/dis869jhd/raw/upload'
   }
 }

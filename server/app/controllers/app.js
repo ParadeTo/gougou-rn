@@ -6,7 +6,7 @@ var User = mongoose.model('User')
 
 exports.signature = function *(next) {
 	var body = this.request.body
-	var type = body.type
+	var key = body.key
 	var token
 
 	// 请求中有key，说明是用七牛

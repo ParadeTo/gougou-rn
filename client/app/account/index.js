@@ -4,7 +4,7 @@ var Button = require('react-native-button').default
 import ImagePickerManager from 'react-native-image-picker' // 需要rnpm link
 import sha1 from 'sha1'
 import * as Progress from 'react-native-progress' // 需要手动添加libraries
-
+import uuid from 'uuid'
 import request from '../common/request'
 import config from '../common/config'
 
@@ -38,17 +38,6 @@ var photoOptions = {
   }
 };
 
-// CLOUDINARY
-var CLOUDINARY = {
-  'cloud_name': 'dis869jhd',
-  'api_key': '541635888437885',
-  'api_secret': 'g6rM2H_GFBiL1-IRpX82NyD8uc8',
-  'base':	'http://res.cloudinary.com/dis869jhd ',
-  'image': 'https://api.cloudinary.com/v1_1/dis869jhd/image/upload',
-  'video':	 'https://api.cloudinary.com/v1_1/dis869jhd/video/upload',
-  'audio':	 'https://api.cloudinary.com/v1_1/dis869jhd/raw/upload'
-}
-
 function avatar(id,type) {
   if (id.indexOf('http') > -1) {
     return id
@@ -56,7 +45,7 @@ function avatar(id,type) {
   if (id.indexOf('data:image') > -1) {
     return id
   }
-  return CLOUDINARY.base + '/' + type + '/upload/' + id
+  return config.CLOUDINARY.base + '/' + type + '/upload/' + id
 }
 
 var Account = React.createClass({
@@ -84,6 +73,17 @@ var Account = React.createClass({
     })
   },
 
+  _getQiniuToken(accessToken,key,) {
+    var signatureURL = config.api.base + config.api.signature
+    return request.post(signatureURL,{
+        accessToken:accessToken,
+        key: key
+      })
+      .catch(e => {
+        console.log(e)
+      })
+  },
+
   // 选取图片
   _pickPhoto() {
     var that = this
@@ -93,53 +93,34 @@ var Account = React.createClass({
         return
       }
       var avatarData = 'data:image/jpeg;base64,' + res.data
-      // var user = that.state.user
-      // user.avatar = avatarData
-      // that.setState({
-      //   user:user
-      // })
 
-      // 上传图片
-      var timestamp = Date.now()
-      var tags = 'app,avatar'
-      var folder = 'avatar'
-      var signatureURL = config.api.base + config.api.signature
+      //  生成七牛签名并上传图片
       var accessToken = this.state.user.accessToken
-      // 模拟后台生成签名值
-      request.post(signatureURL,{
-        accessToken:accessToken,
-        timestamp: timestamp,
-        type: 'avatar'
-      })
-      .then(data => {
-        if (data && data.success) {
-          //data.data
-          var signature = 'folder=' + folder + '&tags=' + tags +'&timestamp=' + timestamp + CLOUDINARY.api_secret
-          // 这个签名应该是后端生成的
-          signature = sha1(signature)
+      var  uri = res.uri
+      var key = uuid.v4() + '.png'
+      that._getQiniuToken(accessToken,key)
+        .then(data => {
+          if (data && data.success) {
+            var token = data.data
+            var body = new FormData()
 
-          var body = new FormData()
-          body.append('folder',folder)
-          body.append('signature',signature)
-          body.append('tags',tags)
-          body.append('api_key',CLOUDINARY.api_key)
-          body.append('resource_type','image')
-          body.append('file',avatarData)
-          body.append('timestamp',timestamp)
-          that._upload(body)
-        }
-      })
-      .catch(e => {
-        console.log(e)
+            body.append('token',token)
+            body.append('file',{
+              type:'image/png',
+              uri:uri,
+              name:key
+            })
+            that._upload(body)
+          }
       })
     })
   },
 
-  // 上传图片到cloudinary
+  // 上传图片到七牛
   _upload(body) {
     var that = this
     var xhr = new XMLHttpRequest()
-    var url = CLOUDINARY.image
+    var url = config.qiniu.upload
 
     that.setState({
       avatarUploading:true

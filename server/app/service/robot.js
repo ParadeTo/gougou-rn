@@ -13,7 +13,7 @@ bucket = 'gougouavatar';
 //构建上传策略函数
 function uptoken(bucket, key) {
   var putPolicy = new qiniu.rs.PutPolicy(bucket + ":" + key);
-  // 文件上传后，齐牛会将下面的数据post到下面的地址
+  // 文件上传后，齐牛会将下面的数据post到下面的地址，从而通知已上传
   // putPolicy.callbackUrl = 'http://your.domain.com/callback';
   // putPolicy.callbackBody = 'filename=$(fname)&filesize=$(fsize)';
   return putPolicy.token();
