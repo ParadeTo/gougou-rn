@@ -26,7 +26,7 @@ var rnDemo = React.createClass({
   getInitialState () {
     return {
       user: null,
-      selectedTab: 'account',
+      selectedTab: 'edit',
       logined: false
     }
   },

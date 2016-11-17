@@ -2,16 +2,20 @@
 
 var mongoose = require('mongoose')
 var robot = require('../service/robot')
+var uuid = require('uuid')
 var User = mongoose.model('User')
 
 exports.signature = function *(next) {
 	var body = this.request.body
-	var key = body.key
+	var cloud = body.cloud
 	var token
+	var key
 
-	// 请求中有key，说明是用七牛
-	if (key) {
-		token = robot.getQiniuToken(key)
+	// 说明是用七牛
+	if (cloud === 'qiniu') {
+		var data = robot.getQiniuToken(body)
+		token = data.token
+		key = data.key
 	}
 	else {
 		token = robot.getCloudinaryToken(body)
@@ -19,7 +23,10 @@ exports.signature = function *(next) {
 
 	this.body = {
 		success: true,
-		data: token
+		data: {
+			token:token,
+			key:key
+		}
 	}
 }
 

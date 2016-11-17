@@ -4,7 +4,6 @@ var Button = require('react-native-button').default
 import ImagePickerManager from 'react-native-image-picker' // 需要rnpm link
 import sha1 from 'sha1'
 import * as Progress from 'react-native-progress' // 需要手动添加libraries
-import uuid from 'uuid'
 import request from '../common/request'
 import config from '../common/config'
 
@@ -77,11 +76,13 @@ var Account = React.createClass({
     })
   },
 
-  _getQiniuToken(accessToken,key,) {
+  _getQiniuToken() {
+    var accessToken = this.state.user.accessToken
     var signatureURL = config.api.base + config.api.signature
     return request.post(signatureURL,{
         accessToken:accessToken,
-        key: key
+        type: 'video',
+        cloud: 'qiniu'
       })
       .catch(e => {
         console.log(e)
@@ -99,14 +100,13 @@ var Account = React.createClass({
       var avatarData = 'data:image/jpeg;base64,' + res.data
 
       //  生成七牛签名并上传图片
-      var accessToken = this.state.user.accessToken
       var  uri = res.uri
-      var key = uuid.v4() + '.jpeg'
-      that._getQiniuToken(accessToken,key)
+      that._getQiniuToken()
         .then(data => {
           console.log(data)
           if (data && data.success) {
-            var token = data.data
+            var token = data.data.token
+            var key = data.data.key
             var body = new FormData()
 
             body.append('token',token)
@@ -130,7 +130,8 @@ var Account = React.createClass({
     var url = config.qiniu.upload
 
     that.setState({
-      avatarUploading:true
+      avatarUploading:true,
+      avatarProgress:0
     })
 
     xhr.open('POST',url)
@@ -155,17 +156,32 @@ var Account = React.createClass({
         console.log("parse fails")
       }
 
-      if (response && response.key) {
-        var user = this.state.user
-        console.log(response)
-        user.avatar = response.key
-        that.setState({
-          user: user, // 这个貌似可以去掉
-          avatarProgress: 0,
-          avatarUploading: false
-        })
-        // 上传到服务器
-        that._asyncUser(true)
+      if (response ) {
+        // 来自七牛
+        if (response.key) {
+          var user = this.state.user
+          user.avatar = response.key
+          that.setState({
+            user: user, // 这个貌似可以去掉
+            avatarProgress: 0,
+            avatarUploading: false
+          })
+          // 上传到自己的服务器
+          that._asyncUser(true)
+        }
+        
+        // 来自cloudinary
+        // if (response.public_id) {
+        //   var user = this.state.user
+        //   user.avatar = response.public_id
+        //   that.setState({
+        //     user: user, // 这个貌似可以去掉
+        //     avatarProgress: 0,
+        //     avatarUploading: false
+        //   })
+        //   // 上传到服务器
+        //   that._asyncUser(true)
+        // }
       }
     }
 
@@ -185,7 +201,7 @@ var Account = React.createClass({
     xhr.send(body)
   },
 
-  // 同步缓存
+  // 同步用户资料
   _asyncUser(isAvatar) {
     var that = this
     var user = this.state.user
