@@ -81,7 +81,7 @@ var Account = React.createClass({
     var signatureURL = config.api.base + config.api.signature
     return request.post(signatureURL,{
         accessToken:accessToken,
-        type: 'video',
+        type: 'avatar',
         cloud: 'qiniu'
       })
       .catch(e => {
@@ -169,7 +169,7 @@ var Account = React.createClass({
           // 上传到自己的服务器
           that._asyncUser(true)
         }
-        
+
         // 来自cloudinary
         // if (response.public_id) {
         //   var user = this.state.user

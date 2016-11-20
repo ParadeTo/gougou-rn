@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 
-var Account = React.createClass({
+var Login = React.createClass({
   getInitialState : function () {
     return {
       codeSent:false,
@@ -135,6 +135,7 @@ var Account = React.createClass({
                   onPress={this._sendVerifyCode}>获取验证码</Button>
                 :
                 <CountDown
+                  text='重新发送'
                   style={styles.countBtn}
                   time={60}
                   afterEnd={this._countingDone}
@@ -218,4 +219,4 @@ const styles = StyleSheet.create({
   }
 })
 
-module.exports = Account;
+module.exports = Login;

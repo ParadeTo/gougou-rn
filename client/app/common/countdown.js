@@ -34,7 +34,7 @@ var CountDown = React.createClass({
 
   render () {
     return (
-        <Text style={this.props.style}>{'重新发送('+this.state.iTime+')'}</Text>
+        <Text style={this.props.style}>{this.props.text+'('+this.state.iTime+')'}</Text>
     )
   }
 })

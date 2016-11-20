@@ -1,7 +1,10 @@
 import React, { Component } from 'react';
 import ImagePickerManager from 'react-native-image-picker' // 需要rnpm link
+import {AudioRecorder, AudioUtils} from 'react-native-audio'
 import config from '../common/config'
+import request from '../common/request'
 
+var CountDown = require('../common/countdown.js')
 var Icon = require('react-native-vector-icons/Ionicons');
 var Video = require('react-native-video').default
 
@@ -10,6 +13,7 @@ import {
   Text,
   Image,
   Dimensions,
+  AlertIOS,
   AsyncStorage,
   ProgressViewIOS,
   TouchableOpacity,
@@ -41,18 +45,22 @@ var Edit = React.createClass({
     return {
       user: user,
       previewVideo: null,
-      // video load
-      videoOk:true,
-      videoLoaded:false,
+      // video upload
+      video: null,
       videoUploaded:false,
       videoUploading:false,
-      playing:false,
-      paused:false,
       videoUploadedProgress:0.01, // 上传进度
+      // video load
       videoProgress:0.01, // 播放进度
       videoTotal:0,
       currentTime:0,
-      data:data,
+      // audio
+      audioName:'gougou.aac',
+      audioPlaying:false,
+      recordDone: false,
+      // count down
+      counting: false,
+      recording: false,
       // video player
       muted:true,
       resizeMode:'contain',
@@ -66,7 +74,7 @@ var Edit = React.createClass({
     var signatureURL = config.api.base + config.api.signature
     return request.post(signatureURL,{
         accessToken:accessToken,
-        type:'avatar',
+        type:'video',
         cloud: 'qiniu'
       })
       .catch(e => {
@@ -74,6 +82,23 @@ var Edit = React.createClass({
       })
   },
 
+  _initAudio() {
+    var audioPath = AudioUtils.DocumentDirectoryPath + '/' + this.state.audioName;
+
+    AudioRecorder.prepareRecordingAtPath(audioPath, {
+      SampleRate: 22050,
+      Channels: 1,
+      AudioQuality: "High",
+      AudioEncoding: "aac"
+    })
+    AudioRecorder.onProgress = (data) => {
+      this.setState({currentTime: Math.floor(data.currentTime)});
+    }
+    AudioRecorder.onFinished = (data) => {
+      this.setState({finished: data.finished});
+      console.log(`Finished recording: ${data.finished}`);
+    }
+  },
 
   componentDidMount() {
     var that = this
@@ -89,6 +114,8 @@ var Edit = React.createClass({
           })
         }
       })
+
+    this._initAudio()
   },
 
    // 上传图片到七牛
@@ -109,6 +136,7 @@ var Edit = React.createClass({
       // 请求失败
       if (xhr.status !== 200) {
         AlertIOS.alert('上传失败，请重试')
+        console.log(xhr.status)
         console.log(xhr.responseText)
         return
       }
@@ -121,6 +149,7 @@ var Edit = React.createClass({
       var response
       try {
         response = JSON.parse(xhr.response)
+        console.log(response)
       } catch (e) {
         console.log(e)
         console.log("parse fails")
@@ -131,6 +160,23 @@ var Edit = React.createClass({
             video:response,
             videoUploaded: true,
             videoUploading: false
+          })
+          // 告诉我们自己的服务器
+          var videoURL = config.api.base + config.api.video
+          var accessToken = this.state.user.accessToken
+          request.post(videoURL,{
+            accessToken: accessToken,
+            video: response
+          })
+          .catch(err => {
+            console.log(err)
+            AlertIOS.alert('视频同步出错，请重新上传')
+          })
+          .then(data => {
+            console.log(data)
+            if (!data || !data.success) {
+              AlertIOS.alert('视频同步出错，请重新上传')
+            }
           })
       }
     }
@@ -154,7 +200,7 @@ var Edit = React.createClass({
   _pickVideo() {
     var that = this
     // ios10 需要在info.plist中增加NSPhotoLibraryUsageDescription和NSCameraUsageDescription
-    ImagePickerManager.showImagePicker(photoOptions, (res) => {
+    ImagePickerManager.showImagePicker(videoOptions, (res) => {
       if (res.didCancel) {
         return
       }
@@ -166,6 +212,7 @@ var Edit = React.createClass({
 
       that._getQiniuToken()
         .then(data => {
+          console.log(data)
           if (data && data.success) {
             var token = data.data.token
             var key = data.data.key
@@ -178,13 +225,14 @@ var Edit = React.createClass({
               uri:uri,
               name:key
             })
+            console.log(body)
             that._upload(body)
           }
       })
     })
   },
 
-_onLoadStart() {
+  _onLoadStart() {
     console.log('start')
   },
   _onLoad() {
@@ -194,24 +242,23 @@ _onLoadStart() {
     var duration = data.playableDuration
     var currentTime = data.currentTime
     var percent = Number((currentTime / duration).toFixed(2))
-    var newState = {
+    this.setState({
       videoTotal:duration,
       currentTime:Number(data.currentTime.toFixed(2)),
       videoProgress:percent
-    }
-    if (!this.state.videoLoaded) {
-      newState.videoLoaded = true
-    }
-    if (!this.state.playing) {
-      newState.playing = true
-    }
-    this.setState(newState)
+    })
   },
   _onEnd() {
-    this.setState({
-      playing: false,
-      videoProgress:1
-    })
+    // 当我们在录音时
+    if (this.state.recording) {
+      // 结束音频录制
+      AudioRecorder.stopRecording()
+      this.setState({
+        recording: false,
+        videoProgress:1,
+        recordDone: true
+      })
+    }
   },
   _onError(err) {
     console.log(err)
@@ -244,6 +291,42 @@ _onLoadStart() {
     })
   },
 
+  // 开始录音
+  _record() {
+    this.setState({
+      videoProgress:0,
+      counting:false,
+      recordDone: false,
+      recording:true
+    })
+    // 录音时从头播放视频
+    this.refs.videoPlayer.seek(0)
+    // 启动音频录制
+    AudioRecorder.startRecording()
+  },
+
+  _counting() {
+    if (!this.state.couting && !this.state.recording) {
+      this.setState({
+        counting: true
+      })
+      this.refs.videoPlayer.seek(this.state.videoTotal - 0.01)
+    }
+  },
+
+  // 预览录音
+  _preview() {
+    if (this.state.audioPlaying) {
+      AudioRecorder.stopPlaying()
+    }
+    this.setState({
+      videoProgress:0,
+      audioPlaying:true
+    })
+    AudioRecorder.playRecording()
+    this.refs.videoPlayer.seek(0)
+  },
+
   render : function() {
     return (
       <View style={styles.container}>
@@ -251,7 +334,11 @@ _onLoadStart() {
           <Text style={styles.toolbarTitle}>
           { this.state.previewVideo ? '点击按钮配音' : '理解狗狗，从配音开始'}
           </Text>
-          <Text style={styles.toolbarEdit} onPress={this._pickVideo}>更换视频</Text>
+          {
+            this.state.previewVideo && this.state.videoUpLoaded ?
+            <Text style={styles.toolbarEdit} onPress={this._pickVideo}>更换视频</Text>
+            : null
+          }
         </View>
         <View style={styles.page}>
           {
@@ -280,7 +367,27 @@ _onLoadStart() {
                   <View style={styles.progressTipBox}>
                     <ProgressViewIOS style={styles.progressBar} progressTintColor='#ee735c' progress={this.state.videoUploadedProgress} />
                     <Text style={styles.progressTip}>正在生成静音视频，已完成{(this.state.videoUploadedProgress*100).toFixed(1)+'%'}</Text>
-                  </View>
+                  </View>: null
+                }
+                {
+                  this.state.recording || this.state.audioPlaying ?
+                  <View style={styles.progressTipBox}>
+                    <ProgressViewIOS style={styles.progressBar} progressTintColor='#ee735c' progress={this.state.videoProgress} />
+                    {
+                      this.state.recording ?
+                      <Text style={styles.progressTip}>录制声音中</Text>:
+                      null
+                    }
+                  </View> : null
+                }
+                {
+                  this.state.recordDone ?
+                  <View style={styles.previewBox}>
+                    <Icon name="play" style={styles.previewIcon} />
+                    <Text style={styles.previewText} onPress={this._preview}>
+                      预览
+                    </Text>
+                  </View>:null
                 }
               </View>
             </View>
@@ -292,6 +399,26 @@ _onLoadStart() {
                 <Text style={styles.uploadDesc}>建议时长不超过10s</Text>
               </View>
             </TouchableOpacity>
+          }
+          {
+            this.state.videoUploaded ?
+            <View style={styles.recordBox}>
+              <View style={[styles.recordIconBox,this.state.recording && styles.recordOn]}>
+              {
+                this.state.counting && !this.state.recording ?
+                <CountDown
+                  text=''
+                  style={styles.countBtn}
+                  time={3}
+                  afterEnd={this._record}
+                /> :
+                <TouchableOpacity onPress={this._counting}>
+                  <Icon name="ios-microphone" style={styles.recordIcon}/>
+                </TouchableOpacity>
+              }
+              </View>
+            </View> :
+            null
           }
         </View>
       </View>
@@ -390,6 +517,57 @@ const styles = StyleSheet.create({
   },
   progressBar:{
     width:width
+  },
+  recordBox:{
+    width:width,
+    height:60,
+    alignItems:'center'
+  },
+  recordIconBox : {
+    width:68,
+    height:68,
+    marginTop:-30,
+    borderRadius:34,
+    backgroundColor:'#ee735c',
+    borderWidth:1,
+    borderColor:'#fff',
+    alignItems:'center',
+    justifyContent:'center'
+  },
+  recordIcon:{
+    fontSize:58,
+    backgroundColor:'transparent',
+    color:'#fff'
+  },
+  countBtn:{
+    fontSize:32,
+    fontWeight:'600',
+    color:'#fff'
+  },
+  recordOn:{
+    backgroundColor:'#ccc'
+  },
+  previewBox:{
+    width: 80,
+    height: 30,
+    position: 'absolute',
+    right:10,
+    bottom:10,
+    borderWidth:1,
+    borderColor:'#ee735c',
+    borderRadius:3,
+    flexDirection:'row',
+    justifyContent:'center',
+    alignItems:'center'
+  },
+  previewIcon:{
+    marginRight:5,
+    fontSize:20,
+    color:'#ee735c'
+  },
+  previewText:{
+    fontSize:20,
+    color:'#ee735c'
   }
 });
 

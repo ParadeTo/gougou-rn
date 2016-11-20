@@ -12,6 +12,7 @@ module.exports = {
     base:debug?'http://rap.taobao.org/mockjs/8417/':'http://localhost:1234/',
     creations:'api/creations',
     up:'api/up',
+    video:'api/creations/video',
     comments:'api/comments',
     signup:'api/u/signup',
     verify:'api/u/verify',

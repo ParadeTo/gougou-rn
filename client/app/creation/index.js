@@ -157,6 +157,7 @@ var List = React.createClass({
       page:page
     })
      .then((data) => {
+       console.log(data)
        if (data.success) {
 
          var items = cachedResults.items.slice()

@@ -36,6 +36,7 @@ var rnDemo = React.createClass({
     var that = this
     AsyncStorage.getItem('user')
       .then((data) => {
+        console.log(data)
         var user
         var newState = {}
 

@@ -2,7 +2,6 @@
 
 var mongoose = require('mongoose')
 var robot = require('../service/robot')
-var uuid = require('uuid')
 var User = mongoose.model('User')
 
 exports.signature = function *(next) {
