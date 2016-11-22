@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import ImagePickerManager from 'react-native-image-picker' // 需要rnpm link
+import _ from 'lodash'
 import {AudioRecorder, AudioUtils} from 'react-native-audio'
 import config from '../common/config'
 import request from '../common/request'
@@ -39,34 +40,37 @@ var videoOptions = {
   }
 };
 
+var defaultState ={
+  previewVideo: null,
+  // video upload
+  video: null,
+  videoUploaded:false,
+  videoUploading:false,
+  videoUploadedProgress:0.01, // 上传进度
+  // video load
+  videoProgress:0.01, // 播放进度
+  videoTotal:0,
+  currentTime:0,
+  // audio
+  audioName:'gougou.aac',
+  audioPlaying:false,
+  recordDone: false,
+  // count down
+  counting: false,
+  recording: false,
+  // video player
+  muted:true,
+  resizeMode:'contain',
+  repeat:false,
+  rate:1
+}
+
 var Edit = React.createClass({
   getInitialState : function () {
     var user = this.props.user || {}
-    return {
-      user: user,
-      previewVideo: null,
-      // video upload
-      video: null,
-      videoUploaded:false,
-      videoUploading:false,
-      videoUploadedProgress:0.01, // 上传进度
-      // video load
-      videoProgress:0.01, // 播放进度
-      videoTotal:0,
-      currentTime:0,
-      // audio
-      audioName:'gougou.aac',
-      audioPlaying:false,
-      recordDone: false,
-      // count down
-      counting: false,
-      recording: false,
-      // video player
-      muted:true,
-      resizeMode:'contain',
-      repeat:false,
-      rate:1
-    }
+    var state = _.clone(defaultState)
+    state.user = user
+    return state
   },
 
   _getQiniuToken() {
@@ -95,6 +99,7 @@ var Edit = React.createClass({
       this.setState({currentTime: Math.floor(data.currentTime)});
     }
     AudioRecorder.onFinished = (data) => {
+      console.log(data)
       this.setState({finished: data.finished});
       console.log(`Finished recording: ${data.finished}`);
     }
@@ -136,8 +141,6 @@ var Edit = React.createClass({
       // 请求失败
       if (xhr.status !== 200) {
         AlertIOS.alert('上传失败，请重试')
-        console.log(xhr.status)
-        console.log(xhr.responseText)
         return
       }
 
@@ -149,7 +152,6 @@ var Edit = React.createClass({
       var response
       try {
         response = JSON.parse(xhr.response)
-        console.log(response)
       } catch (e) {
         console.log(e)
         console.log("parse fails")
@@ -186,7 +188,6 @@ var Edit = React.createClass({
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           var percent = Number((event.loaded / event.total).toFixed(2))
-          console.log(percent)
           that.setState({
             videoUploadedProgress: percent
           })
@@ -204,15 +205,15 @@ var Edit = React.createClass({
       if (res.didCancel) {
         return
       }
-
+      // 重置状态
+      var state = _.clone(defaultState)
+      state.previewVideo = res.uri
+      state.user = this.state.user
       var  uri = res.uri
-      that.setState({
-        previewVideo: uri
-      })
+      that.setState(state)
 
       that._getQiniuToken()
         .then(data => {
-          console.log(data)
           if (data && data.success) {
             var token = data.data.token
             var key = data.data.key
@@ -225,7 +226,6 @@ var Edit = React.createClass({
               uri:uri,
               name:key
             })
-            console.log(body)
             that._upload(body)
           }
       })
@@ -306,7 +306,8 @@ var Edit = React.createClass({
   },
 
   _counting() {
-    if (!this.state.couting && !this.state.recording) {
+    // 没有倒计时，没有录制，没有预览时可以开始倒计时
+    if (!this.state.couting && !this.state.recording && !this.state.audioPlaying) {
       this.setState({
         counting: true
       })
@@ -335,7 +336,7 @@ var Edit = React.createClass({
           { this.state.previewVideo ? '点击按钮配音' : '理解狗狗，从配音开始'}
           </Text>
           {
-            this.state.previewVideo && this.state.videoUpLoaded ?
+            (this.state.previewVideo && this.state.videoUploaded) ?
             <Text style={styles.toolbarEdit} onPress={this._pickVideo}>更换视频</Text>
             : null
           }
@@ -383,7 +384,7 @@ var Edit = React.createClass({
                 {
                   this.state.recordDone ?
                   <View style={styles.previewBox}>
-                    <Icon name="play" style={styles.previewIcon} />
+                    <Icon name="ios-play" style={styles.previewIcon} />
                     <Text style={styles.previewText} onPress={this._preview}>
                       预览
                     </Text>
@@ -403,7 +404,7 @@ var Edit = React.createClass({
           {
             this.state.videoUploaded ?
             <View style={styles.recordBox}>
-              <View style={[styles.recordIconBox,this.state.recording && styles.recordOn]}>
+              <View style={[styles.recordIconBox,(this.state.recording || this.state.audioPlaying)&& styles.recordOn]}>
               {
                 this.state.counting && !this.state.recording ?
                 <CountDown
