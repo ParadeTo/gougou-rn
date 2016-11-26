@@ -1,4 +1,5 @@
 'use strict'
+// true 表示使用阿里的rap接口
 var debug = false
 module.exports = {
   header : {
@@ -23,7 +24,7 @@ module.exports = {
     upload:'http://upload.qiniu.com/',
     url: 'http://ofafv8os7.bkt.clouddn.com/'
   },
- CLOUDINARY: {
+ cloudinary: {
     'cloud_name': 'dis869jhd',
     'api_key': '541635888437885',
     'api_secret': 'g6rM2H_GFBiL1-IRpX82NyD8uc8',

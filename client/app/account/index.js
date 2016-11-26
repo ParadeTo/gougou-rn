@@ -150,6 +150,7 @@ var Account = React.createClass({
 
       var response
       try {
+        console.log(xhr.response)
         response = JSON.parse(xhr.response)
       } catch (e) {
         console.log(e)

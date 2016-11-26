@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
 import ImagePickerManager from 'react-native-image-picker' // 需要rnpm link
 import _ from 'lodash'
-import {AudioRecorder, AudioUtils} from 'react-native-audio'
+import {AudioRecorder, AudioUtils} from 'react-native-audio' // rnpm link
 import config from '../common/config'
 import request from '../common/request'
+import * as Progress from 'react-native-progress' // 需要手动添加libraries
 
 var CountDown = require('../common/countdown.js')
 var Icon = require('react-native-vector-icons/Ionicons');
@@ -52,9 +53,14 @@ var defaultState ={
   videoTotal:0,
   currentTime:0,
   // audio
-  audioName:'gougou.aac',
+  audioPath: AudioUtils.DocumentDirectoryPath + '/gougou.aac',
   audioPlaying:false,
   recordDone: false,
+  // audio 上传
+  audio: null,
+  audioUploaded:false,
+  audioUploading:false,
+  audioUploadedProgress:0.01, // 上传进度
   // count down
   counting: false,
   recording: false,
@@ -65,6 +71,7 @@ var defaultState ={
   rate:1
 }
 
+// 七牛不能拼接视频和音频，所以要把视频和音频都上到cloudinary去处理
 var Edit = React.createClass({
   getInitialState : function () {
     var user = this.props.user || {}
@@ -73,21 +80,51 @@ var Edit = React.createClass({
     return state
   },
 
-  _getQiniuToken() {
-    var accessToken = this.state.user.accessToken
+  _getToken(body) {
     var signatureURL = config.api.base + config.api.signature
-    return request.post(signatureURL,{
-        accessToken:accessToken,
-        type:'video',
-        cloud: 'qiniu'
-      })
-      .catch(e => {
-        console.log(e)
-      })
+    body.accessToken = this.state.user.accessToken
+    return request.post(signatureURL, body)
+  },
+
+  _uploadAudio() {
+    var that = this
+    var tags = 'app,audio'
+    var folder = 'audio'
+    var timestamp = Date.now()
+
+    this._getToken({
+      type: 'audio',
+      cloud: 'cloudinary',
+      timestamp: timestamp
+    })
+    .then(data => {
+      if (data && data.success) {
+        var signature = data.data.token
+        var key = data.data.key
+        var body = new FormData()
+
+        body.append('folder', folder)
+        body.append('signature', signature)
+        body.append('tags', tags)
+        body.append('timestamp', timestamp)
+        body.append('api_key', config.cloudinary.api_key)
+        body.append('resource_type', 'video')
+        body.append('file', {
+          type:'video/mp4',
+          uri: that.state.audioPath,
+          name: key
+        })
+        console.log(body)
+        that._upload(body,'audio')
+      }
+    })
+    .catch(err => {
+      console.log(err)
+    })
   },
 
   _initAudio() {
-    var audioPath = AudioUtils.DocumentDirectoryPath + '/' + this.state.audioName;
+    var audioPath = this.state.audioPath
 
     AudioRecorder.prepareRecordingAtPath(audioPath, {
       SampleRate: 22050,
@@ -119,25 +156,30 @@ var Edit = React.createClass({
           })
         }
       })
-
     this._initAudio()
   },
 
-   // 上传图片到七牛
-  _upload(body) {
+   // 上传资源到七牛或者cloudinary
+  _upload(body, type) {
 
     var that = this
     var xhr = new XMLHttpRequest()
     var url = config.qiniu.upload
 
-    that.setState({
-      videoUploadedProgress:0,
-      videoUploading:true,
-      videoUploaded: false,
-    })
+    // 音频上传到cloudinary
+    if (type === 'audio') {
+      url = config.cloudinary.video
+    }
+
+    var state = {}
+    state[type+'UploadedProgress'] = 0
+    state[type+'Uploading'] = true
+    state[type+'Uploaded'] = false
+    that.setState(state)
 
     xhr.open('POST',url)
     xhr.onload = () => {
+      console.log(xhr.responseText)
       // 请求失败
       if (xhr.status !== 200) {
         AlertIOS.alert('上传失败，请重试')
@@ -157,19 +199,22 @@ var Edit = React.createClass({
         console.log("parse fails")
       }
 
-      if (response ) {
-          that.setState({
-            video:response,
-            videoUploaded: true,
-            videoUploading: false
-          })
+      if (response) {
+        var newState = {}
+        newState[type] = response
+        newState[type+'Uploading'] = false
+        newState[type+'Uploaded'] = true
+        that.setState(newState)
+
+        if (type === 'video') {
           // 告诉我们自己的服务器
-          var videoURL = config.api.base + config.api.video
+          var updateURL = config.api.base + config.api[type]
           var accessToken = this.state.user.accessToken
-          request.post(videoURL,{
-            accessToken: accessToken,
-            video: response
-          })
+          var updateBody = {
+            accessToken: accessToken
+          }
+          updateBody[type] = response
+          request.post(updateURL, updateBody)
           .catch(err => {
             console.log(err)
             AlertIOS.alert('视频同步出错，请重新上传')
@@ -180,6 +225,7 @@ var Edit = React.createClass({
               AlertIOS.alert('视频同步出错，请重新上传')
             }
           })
+        }
       }
     }
 
@@ -188,9 +234,9 @@ var Edit = React.createClass({
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           var percent = Number((event.loaded / event.total).toFixed(2))
-          that.setState({
-            videoUploadedProgress: percent
-          })
+          var progressState = {}
+          progressState[type+'UploadedProgress'] = percent
+          that.setState(progressState)
         }
       }
     }
@@ -212,7 +258,14 @@ var Edit = React.createClass({
       var  uri = res.uri
       that.setState(state)
 
-      that._getQiniuToken()
+      that._getToken({
+        type:'video',
+        cloud:'qiniu'
+      })
+        .catch(err=>{
+          console.log(JSON.stringify(err))
+          AlertIOS.alert('获取token出错')
+        })
         .then(data => {
           if (data && data.success) {
             var token = data.data.token
@@ -226,7 +279,7 @@ var Edit = React.createClass({
               uri:uri,
               name:key
             })
-            that._upload(body)
+            that._upload(body,'video')
           }
       })
     })
@@ -421,6 +474,25 @@ var Edit = React.createClass({
             </View> :
             null
           }
+          {
+            // 视频上传结束和录音结束
+            this.state.videoUploaded && this.state.recordDone ?
+            <View style={styles.uploadAudioBox}>
+              {
+                // 点击下一步开始上传
+                !this.state.audioUploaded && !this.state.audioUploading ?
+                <Text style={styles.uploadAudioText} onPress={this._uploadAudio}>下一步</Text> : null
+              }
+              {
+                this.state.audioUploading ?
+                <Progress.Circle
+                  showsText={true}
+                  color={'#ee735c'}
+                  size={60}
+                  progress={this.state.audioUploadedProgress} /> : null
+              }
+            </View>:null
+          }
         </View>
       </View>
     )
@@ -564,11 +636,29 @@ const styles = StyleSheet.create({
   previewIcon:{
     marginRight:5,
     fontSize:20,
-    color:'#ee735c'
+    color:'#ee735c',
+    backgroundColor: 'transparent'
   },
   previewText:{
     fontSize:20,
-    color:'#ee735c'
+    color:'#ee735c',
+    backgroundColor: 'transparent'
+  },
+  uploadAudioBox : {
+    width: width,
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  uploadAudioText: {
+    width: width-20,
+    borderWidth:1,
+    borderColor: '#ee735c',
+    borderRadius: 5,
+    textAlign: 'center',
+    fontSize: 30,
+    color: '#ee735c'
   }
 });
 

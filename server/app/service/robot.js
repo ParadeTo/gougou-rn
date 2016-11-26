@@ -79,10 +79,14 @@ exports.getCloudinaryToken = function(body) {
 		tags = 'app,audio'
 	}
 
-	var signature = 'folder=' + folder + '&tags=' + tags + '&timstamp=' + timestamp + config.cloudinary.api_secret
+	var signature = 'folder=' + folder + '&tags=' + tags + '&timestamp=' + timestamp + config.cloudinary.api_secret
+	var key = uuid.v4()
 	signature = sha1(signature)
 
-	return signature
+	return {
+		token: signature,
+		key:key
+	}
 }
 
 //生成上传 Token
