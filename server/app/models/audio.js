@@ -14,6 +14,8 @@ var AudioSchema = new mongoose.Schema({
     ref: 'Video'
   },
 
+  qiniu_video: String, // 合并后的七牛地址
+  qiniu_thumb: String, // 合并后封面地址
   public_id: String,
   detail: Mixed,
 	meta: {
@@ -41,4 +43,4 @@ AudioSchema.pre('save', function(next) {
 	next()
 })
 
-module.exports = mongoose.model('Audio',VideoSchema)
+module.exports = mongoose.model('Audio',AudioSchema)

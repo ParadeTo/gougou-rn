@@ -6,6 +6,7 @@ import config from '../common/config'
 import request from '../common/request'
 import * as Progress from 'react-native-progress' // 需要手动添加libraries
 
+var Button = require('react-native-button').default
 var CountDown = require('../common/countdown.js')
 var Icon = require('react-native-vector-icons/Ionicons');
 var Video = require('react-native-video').default
@@ -19,6 +20,8 @@ import {
   AsyncStorage,
   ProgressViewIOS,
   TouchableOpacity,
+  Modal,
+  TextInput,
   View
 } from 'react-native';
 
@@ -45,6 +48,11 @@ var defaultState ={
   previewVideo: null,
   videoId: null,
   audioId: null,
+  title:'',
+  modalVisible: false,
+  publishing: false,
+  willPublish: false,
+  publishProgress: 0.2,
   // video upload
   video: null,
   videoUploaded:false,
@@ -235,6 +243,10 @@ var Edit = React.createClass({
           if (data && data.success) {
             var mediaState = {}
             mediaState[type + 'Id'] = data.data
+            if (type === 'audio') {
+              that._showModal()
+              mediaState.willPublish = true
+            }
             that.setState(mediaState)
           } else {
             if (type === 'video') {
@@ -399,6 +411,58 @@ var Edit = React.createClass({
     this.refs.videoPlayer.seek(0)
   },
 
+  // 关闭对话框
+  _closeModal() {
+    this.setState({
+      modalVisible: false
+    })
+  },
+
+  // 打开对话框
+  _showModal() {
+    this.setState({
+      modalVisible: true
+    })
+  },
+
+  // 发布创意
+  _submit() {
+    var that = this
+    var body = {
+      title: this.state.title,
+      videoId: this.state.videoId,
+      audioId: this.state.audioId
+    }
+    var creationURL = config.api.base + config.api.creations
+    var user = this.state.user
+    if (user && user.accessToken) {
+      body.accessToken = user.accessToken
+      that.setState({
+        publishing: true
+      })
+      request.post(creationURL, body)
+        .catch(err => {
+          console.log(err);
+          AlertIOS.alert('视频发布失败')
+        })
+        .then(data => {
+          console.log('视频发布后的data')
+          console.log(data)
+          if (data && data.success) {
+            that._closeModal()
+            AlertIOS.alert('视频发布成功')
+            var state = _.clone(defaultState)
+            that.setState(state)
+          } else {
+            that.setState({
+              publishing: false
+            })
+            AlertIOS.alert('视频发布失败')
+          }
+        })
+    }
+  },
+
   render : function() {
     return (
       <View style={styles.container}>
@@ -512,6 +576,62 @@ var Edit = React.createClass({
             </View>:null
           }
         </View>
+        <Modal
+          visible={this.state.modalVisible}>
+          <View style={styles.modalContainer}>
+            <Icon
+              onPress={this._closeModal}
+              name='ios-close-outline'
+              style={styles.closeIcon}/>
+            {
+              this.state.audioUploaded && !this.state.publishing ?
+              <View style={styles.fieldBox}>
+                <TextInput
+                  placeholder={'给狗狗一句宣言吧'}
+                  style={styles.inputField}
+                  autoCapitalize={'none'}
+                  autoCorrect={false}
+                  defaultValue={this.state.title}
+                  onChangeText={(text) => {
+                    this.setState({
+                      title: text
+                    })
+                  }}/>
+              </View> : null
+            }
+            {
+              this.state.publishing ?
+              <View style={styles.loadingBox}>
+                <Text style={styles.loadingText}>正在生成视频...</Text>
+                {
+                  // 点击下一步，但是还没有发布到后台
+                  this.state.willPublish ?
+                  <Text style={styles.loadingText}>正在合并视频音频...</Text>
+                  : null
+                }
+                {
+                  this.state.publishProgress > 0.3 ?
+                  <Text style={styles.loadingText}>开始上传...</Text>
+                  : null
+                }
+                <Progress.Circle
+                  showsText={true}
+                  color={'#ee735c'}
+                  size={60}
+                  progress={this.state.publishProgress} />
+              </View>
+              : null
+            }
+            <View style={styles.submitBox}>
+              {
+                this.state.audioUploaded && !this.state.publishing ?
+                <Button style={styles.btn}
+                  onPress={this._submit}>发布视频</Button>
+                : null
+              }
+            </View>
+          </View>
+        </Modal>
       </View>
     )
   }
@@ -677,6 +797,61 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 30,
     color: '#ee735c'
+  },
+  inputField:{
+    height:36,
+    textAlign:'center',
+    color:'#666',
+    fontSize:14
+  },
+  btn:{
+    marginTop:65,
+    padding:10,
+    marginLeft:10,
+    marginRight:10,
+    backgroundColor:'transparent',
+    borderColor:'#EE735C',
+    borderWidth:1,
+    borderRadius:4,
+    color:'#ee735c'
+  },
+  modalContainer:{
+    width: width,
+    height: height,
+    paddingTop:50,
+    backgroundColor:'#fff'
+  },
+  closeIcon:{
+    position:'absolute',
+    fontSize:20,
+    right:10,
+    top:30,
+    color:'#ee735c'
+  },
+  loadingBox:{
+    width:width,
+    height:50,
+    marginTop:10,
+    padding:15,
+    alignItems:'center'
+  },
+  loadingText: {
+    marginBottom: 10,
+    textAlign:'center',
+    color:'#333'
+  },
+  fieldBox: {
+    width: width - 40,
+    height: 36,
+    marginTop: 30,
+    marginLeft: 20,
+    marginRight: 20,
+    borderBottomWidth:1,
+    borderBottomColor: '#eaeaea'
+  },
+  submitBox: {
+    marginTop: 50,
+    padding:15
   }
 });
 

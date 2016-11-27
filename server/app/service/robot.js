@@ -12,6 +12,19 @@ qiniu.conf.SECRET_KEY =  config.qiniu.SK
 
 cloudinary.config(config.cloudinary)
 
+exports.saveToQiniu = function(url, key) {
+	var client = new qiniu.rs.Client()
+	return new Promise(function(resolve,reject){
+		client.fetch(url, 'gougouvideo', key, function(err, ret) {
+			if (!err) {
+				resolve(err)
+			} else {
+				reject(ret)
+			}
+		})
+	})
+}
+
 exports.uploadToCloudinary = function(url) {
 	return new Promise(function(resolve, reject) {
 		cloudinary.uploader.upload(url, function(result){
