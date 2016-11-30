@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 var Icon = require('react-native-vector-icons/Ionicons');
 var request = require('../common/request.js')
 var config = require('../common/config.js')
+var util = require('../common/util.js')
 var Detail = require('./detail')
 
 import {
@@ -14,6 +15,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   AlertIOS,
+  AsyncStorage,
   ListView
 } from 'react-native';
 
@@ -43,7 +45,7 @@ var Item = React.createClass({
     var body = {
       id: row._id,
       up: up ? 'yes' : 'no',
-      accessToken: 'abcee'
+      accessToken: this.props.user.accessToken
     }
 
     request.post(url,body)
@@ -70,7 +72,7 @@ var Item = React.createClass({
         <View style={styles.item}>
           <Text style={styles.title}>{row.title}</Text>
           <Image
-            source={{uri: row.thumb}}
+            source={{uri: util.thumb(row.qiniu_thumb)}}
             style={styles.thumb}>
             <Icon
               name="ios-play"
@@ -129,6 +131,7 @@ var List = React.createClass({
   _renderRow : function (row) {
     return (
       <Item
+        user={this.status.user}
         key={row._id}
         row={row}
         onSelect={() => this._loadPage(row) }
@@ -137,7 +140,21 @@ var List = React.createClass({
   },
 
   componentDidMount : function() {
-    this._fetchData(1);
+    var that = this
+    AsyncStorage.getItem('user')
+      .then((data) => {
+        var user
+        if (data) {
+          user = JSON.parse(data)
+        }
+        if (user && user.accessToken) {
+          that.setState({
+            user:user
+          }, function() {
+            that._fetchData(1);
+          })
+        }
+      })
   },
 
   _fetchData(page) {
@@ -153,33 +170,34 @@ var List = React.createClass({
     }
 
     request.get(config.api.base+config.api.creations,{
-      accessToken:'adc',
+      accessToken: this.state.user.accessToken,
       page:page
     })
      .then((data) => {
-       console.log(data)
-       if (data.success) {
 
-         var items = cachedResults.items.slice()
-         if (page !== 0) {
-           items = items.concat(data.data);
-           cachedResults.nextPage += 1;
-         } else {
-           items =  data.data.concat(items);
-         }
-         cachedResults.items = items;
-         cachedResults.total = data.total;
+       if (data && data.success) {
+         if (data.data.length > 0) {
+           var items = cachedResults.items.slice()
+           if (page !== 0) {
+             items = items.concat(data.data);
+             cachedResults.nextPage += 1;
+           } else {
+             items =  data.data.concat(items);
+           }
+           cachedResults.items = items;
+           cachedResults.total = data.total;
 
-         if (page !== 0) {
-           this.setState({
-             isLoadingTail:false,
-             dataSource : this.state.dataSource.cloneWithRows(cachedResults.items)
-           })
-         } else {
-           this.setState({
-             isRefreshing:false,
-             dataSource : this.state.dataSource.cloneWithRows(cachedResults.items)
-           })
+           if (page !== 0) {
+             this.setState({
+               isLoadingTail:false,
+               dataSource : this.state.dataSource.cloneWithRows(cachedResults.items)
+             })
+           } else {
+             this.setState({
+               isRefreshing:false,
+               dataSource : this.state.dataSource.cloneWithRows(cachedResults.items)
+             })
+           }
          }
        }
      })

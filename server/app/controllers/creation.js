@@ -9,6 +9,10 @@ var Video = mongoose.model('Video')
 var Audio = mongoose.model('Audio')
 var Creation = mongoose.model('Creation')
 
+var userFields = [
+  'avatar','nickname','gender','age','breed'
+]
+
 function asyncMedia(videoId, audioId) {
   if (!videoId) {
     return
@@ -43,10 +47,10 @@ function asyncMedia(videoId, audioId) {
     var audio_public_id = audio.public_id.replace(/\//g,':')
     var videoName = video_public_id.replace(/\//g,'_') + '.mp4'
     // 合并后的视频地址
-    var videoURL = 'http://res.cloudinary.com/gougou/video/upload/e_volume:-100/e_volume:400,l_video:' + audio_public_id + '/' + video_public_id + '.mp4'
+    var videoURL = 'http://res.cloudinary.com/dis869jhd/video/upload/e_volume:-100/e_volume:400,l_video:' + audio_public_id + '/' + video_public_id + '.mp4'
     var thumbName = video_public_id.replace('/','_') + '.jpg'
     // 合并后的封面地址
-    var thumbURL = 'http://res.cloudinary.com/gougou/video/upload/' + video_public_id + '.jpg'
+    var thumbURL = 'http://res.cloudinary.com/dis869jhd/video/upload/' + video_public_id + '.jpg'
 
     console.log('同步视频到七牛')
     // 有可能uploadToCloudinary上传视频还没有执行完
@@ -106,6 +110,34 @@ function asyncMedia(videoId, audioId) {
   })
 }
 
+// 视频列表
+exports.find = function *(next) {
+  var page = parseInt(this.query.page, 10) || 1
+  var count = 5
+  var offset = (page - 1) * count
+
+  var queryArray = [
+    Creation
+      .find({finish:100})
+      .sort({
+        'meta.createAt': -1
+      })
+      .skip(offset)
+      .limit(count)
+      .populate('author',userFields.join(' ')) // 连接
+      .exec(),
+    Creation.count({finish:100}).exec()
+  ]
+
+  var data = yield queryArray
+
+  this.body = {
+    success: true,
+    data: data[0],
+    total: data[1]
+  }
+}
+
 // 发布视频
 exports.save = function *(next) {
   var body = this.request.body
@@ -131,7 +163,7 @@ exports.save = function *(next) {
     return next
   }
 
-  var creation = yield Creaction.findOne({
+  var creation = yield Creation.findOne({
     audio: audioId,
     video: videoId
   }).exec()
@@ -148,8 +180,8 @@ exports.save = function *(next) {
     var audio_public_id = audio.public_id
 
     if (video_public_id && audio_public_id) {
-      creationData.cloudinary_thumb = 'http://res.cloudinary.com/gougou/video/upload/' + video_public_id + '.jpg'
-      creationData.cloudinary_video = 'http://res.cloudinary.com/gougou/video/upload/e_volume:-100/e_volume:400,l_video:' +
+      creationData.cloudinary_thumb = 'http://res.cloudinary.com/dis869jhd/video/upload/' + video_public_id + '.jpg'
+      creationData.cloudinary_video = 'http://res.cloudinary.com/dis869jhd/video/upload/e_volume:-100/e_volume:400,l_video:' +
         audio.public_id.replace(/\//g,':') + '/' + video_public_id + '.mp4'
       creationData.finish += 20
     }
@@ -164,7 +196,7 @@ exports.save = function *(next) {
       creationData.finish += 30
     }
 
-    creation = new Creaction(creationData)
+    creation = new Creation(creationData)
   }
 
   creation = yield creation.save()
@@ -186,6 +218,7 @@ exports.save = function *(next) {
       }
     }
   }
+  console.log(this.body)
 }
 
 // 上传音频，并且合并音频视频

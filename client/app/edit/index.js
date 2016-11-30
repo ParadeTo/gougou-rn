@@ -52,7 +52,7 @@ var defaultState ={
   modalVisible: false,
   publishing: false,
   willPublish: false,
-  publishProgress: 0.2,
+  publishProgress: 0.01,
   // video upload
   video: null,
   videoUploaded:false,
@@ -450,8 +450,9 @@ var Edit = React.createClass({
           console.log(data)
           if (data && data.success) {
             that._closeModal()
-            AlertIOS.alert('视频发布成功')
+            // AlertIOS.alert('视频发布成功')
             var state = _.clone(defaultState)
+            console.log(state)
             that.setState(state)
           } else {
             that.setState({
@@ -464,11 +465,12 @@ var Edit = React.createClass({
   },
 
   render : function() {
+    var that = this
     return (
       <View style={styles.container}>
         <View style={styles.toolbar}>
           <Text style={styles.toolbarTitle}>
-          { this.state.previewVideo ? '点击按钮配音' : '理解狗狗，从配音开始'}
+          { this.state.previewVideo ? '点击按钮配音' : '理解狗狗，从配音开始' }
           </Text>
           {
             (this.state.previewVideo && this.state.videoUploaded) ?

@@ -4,7 +4,7 @@ var mongoose = require('mongoose')
 var ObjectId = mongoose.Schema.Types.ObjectId
 var Mixed = mongoose.Schema.Types.Mixed
 
-var CreactionSchema = new mongoose.Schema({
+var CreationSchema = new mongoose.Schema({
   author: {
     type:ObjectId,
     ref:'User'
@@ -16,7 +16,7 @@ var CreactionSchema = new mongoose.Schema({
   audio: {
     type:ObjectId,
     ref:'Audio'
-  }
+  },
   qiniu_thumb: String,
   qiniu_video: String,
   cloudinary_thumb: String,
@@ -38,7 +38,7 @@ var CreactionSchema = new mongoose.Schema({
 })
 
 // 存储前的处理
-CreactionSchema.pre('save', function(next) {
+CreationSchema.pre('save', function(next) {
 
 	if (this.isNew) {
 		this.meta.createAt = this.meta.updateAt = Date.now()
@@ -50,4 +50,4 @@ CreactionSchema.pre('save', function(next) {
 	next()
 })
 
-module.exports = mongoose.model('Creaction',CreactionSchema)
+module.exports = mongoose.model('Creation', CreationSchema)
