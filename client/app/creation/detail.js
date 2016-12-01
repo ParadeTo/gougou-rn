@@ -4,6 +4,7 @@ var Video = require('react-native-video').default
 var Button = require('react-native-button').default
 var config = require('../common/config.js')
 var request = require('../common/request.js')
+var util = require('../common/util.js')
 
 import {
   StyleSheet,
@@ -126,7 +127,7 @@ var Detail = React.createClass({
   },
 
   componentDidMount () {
-    this._fetchData()
+    // this._fetchData()
   },
 
   // 获取评论
@@ -235,7 +236,7 @@ var Detail = React.createClass({
       <View style={styles.listHeader}>
         <View style={styles.infoBox}>
           <Image style={styles.avatar}
-            source={{uri: data.author.avatar}}/>
+            source={{uri: util.avatar(data.author.avatar)}}/>
           <View style={styles.descBox}>
             <Text style={styles.nickname}>{data.author.nickname}</Text>
             <Text style={styles.title}>{data.title} </Text>
@@ -261,7 +262,7 @@ var Detail = React.createClass({
       <View key={row._id}
         style={styles.replyBox}>
         <Image style={styles.replyAvatar}
-          source={{uri: row.replyBy.avatar}}/>
+          source={{uri: util.avatar(row.replyBy.avatar)}}/>
         <View style={styles.reply}>
           <Text style={styles.replyNickname}>{row.replyBy.nickname}</Text>
           <Text style={styles.replyContent}>{row.content} </Text>
@@ -356,7 +357,7 @@ var Detail = React.createClass({
         <View style={styles.videoBox}>
           <Video
             ref="videoPlayer"
-            source={{uri:data.video}}
+            source={{uri:util.video(config.debug ? data.video : data.qiniu_video)}}
             style={styles.video}
             volumn={5}
             paused={this.state.paused}

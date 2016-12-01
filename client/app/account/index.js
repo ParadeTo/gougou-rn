@@ -6,6 +6,7 @@ import sha1 from 'sha1'
 import * as Progress from 'react-native-progress' // 需要手动添加libraries
 import request from '../common/request'
 import config from '../common/config'
+import util from '../common/util'
 
 import {
   Modal,
@@ -36,20 +37,6 @@ var photoOptions = {
     path: 'images'
   }
 };
-
-function avatar(id,type) {
-  if (id.indexOf('http') > -1) {
-    return id
-  }
-  if (id.indexOf('data:image') > -1) {
-    return id
-  }
-  return config.CLOUDINARY.base + '/' + type + '/upload/' + id
-}
-
-function avatarQiniu(key) {
-  return config.qiniu.url + key;
-}
 
 var Account = React.createClass({
   getInitialState () {
@@ -270,7 +257,7 @@ var Account = React.createClass({
           user.avatar
           ?
           <TouchableOpacity onPress={this._pickPhoto}>
-            <Image source={{uri: avatarQiniu(user.avatar)}} style={styles.avatarContainer}>
+            <Image source={{uri: util.avatar(user.avatar)}} style={styles.avatarContainer}>
               <View style={styles.avatarBox}>
                 {
                   this.state.avatarUploading ?
@@ -281,7 +268,7 @@ var Account = React.createClass({
                     progress={this.state.avatarProgress} />
                     :
                   <Image
-                    source={{uri:avatarQiniu(user.avatar)}}
+                    source={{uri:util.avatar(user.avatar)}}
                     style={styles.avatar}/>
                 }
               </View>

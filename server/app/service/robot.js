@@ -17,9 +17,9 @@ exports.saveToQiniu = function(url, key) {
 	return new Promise(function(resolve,reject){
 		client.fetch(url, 'gougouvideo', key, function(err, ret) {
 			if (!err) {
-				resolve(err)
+				resolve(ret)
 			} else {
-				reject(ret)
+				reject(err)
 			}
 		})
 	})

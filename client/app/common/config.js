@@ -2,6 +2,7 @@
 // true 表示使用阿里的rap接口
 var debug = false
 module.exports = {
+  debug: debug,
   header : {
     method: 'POST',
     headers: {
@@ -23,9 +24,10 @@ module.exports = {
   },
   qiniu:{
     upload:'http://upload.qiniu.com/',
-    url: 'http://ofafv8os7.bkt.clouddn.com/'
+    videoUrl: 'http://ogx55myfx.bkt.clouddn.com/', // 视频存储空间,包括视频缩略图
+    avatarUrl: 'http://ofafv8os7.bkt.clouddn.com/' // 头像存储空间
   },
- cloudinary: {
+  cloudinary: {
     'cloud_name': 'dis869jhd',
     'api_key': '541635888437885',
     'api_secret': 'g6rM2H_GFBiL1-IRpX82NyD8uc8',

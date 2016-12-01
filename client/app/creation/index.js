@@ -72,7 +72,7 @@ var Item = React.createClass({
         <View style={styles.item}>
           <Text style={styles.title}>{row.title}</Text>
           <Image
-            source={{uri: util.thumb(row.qiniu_thumb)}}
+            source={{uri: util.thumb(config.debug ? row.thumb : row.qiniu_thumb)}}
             style={styles.thumb}>
             <Icon
               name="ios-play"
@@ -121,6 +121,7 @@ var List = React.createClass({
     //    }
     var ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     return {
+      user: null,
       dataSource: ds.cloneWithRows([]),
       isLoadingTail:false,
       isRefreshing:false
@@ -129,9 +130,10 @@ var List = React.createClass({
 
   // 每个列表项
   _renderRow : function (row) {
+    console.log(row);
     return (
       <Item
-        user={this.status.user}
+        user={this.state.user}
         key={row._id}
         row={row}
         onSelect={() => this._loadPage(row) }
@@ -174,7 +176,6 @@ var List = React.createClass({
       page:page
     })
      .then((data) => {
-
        if (data && data.success) {
          if (data.data.length > 0) {
            var items = cachedResults.items.slice()

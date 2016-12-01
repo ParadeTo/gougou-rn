@@ -60,6 +60,8 @@ function asyncMedia(videoId, audioId) {
         console.log(err);
       })
       .then(function(response){
+        console.log('看看qiniu_video');
+        console.log(response);
         if (response && response.key) {
           audio.qiniu_video = response.key
           audio.save().then(function(_audio) {
@@ -87,6 +89,8 @@ function asyncMedia(videoId, audioId) {
         console.log(err);
       })
       .then(function(response){
+        console.log('看看qiniu_thumb');
+        console.log(response);
         if (response && response.key) {
           audio.qiniu_thumb = response.key
           audio.save().then(function(_audio) {
