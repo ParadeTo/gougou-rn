@@ -25,7 +25,8 @@ module.exports = {
   qiniu:{
     upload:'http://upload.qiniu.com/',
     videoUrl: 'http://ogx55myfx.bkt.clouddn.com/', // 视频存储空间,包括视频缩略图
-    avatarUrl: 'http://ofafv8os7.bkt.clouddn.com/' // 头像存储空间
+    avatarUrl: 'http://ofafv8os7.bkt.clouddn.com/', // 头像存储空间
+    defaultAvatar: 'http://ofafv8os7.bkt.clouddn.com/default.png' // 默认头像
   },
   cloudinary: {
     'cloud_name': 'dis869jhd',

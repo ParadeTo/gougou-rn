@@ -1,17 +1,18 @@
 'use strict'
 
-var mongoose = require('mongoose')
-var Promise = require('bluebird')
-var xss = require('xss')
-var robot = require('../service/robot')
-var config = require('../../config/config')
-var Video = mongoose.model('Video')
-var Audio = mongoose.model('Audio')
-var Creation = mongoose.model('Creation')
+var _ = require('lodash');
+var mongoose = require('mongoose');
+var Promise = require('bluebird');
+var xss = require('xss');
+var robot = require('../service/robot');
+var config = require('../../config/config');
+var Video = mongoose.model('Video');
+var Audio = mongoose.model('Audio');
+var Creation = mongoose.model('Creation');
 
 var userFields = [
   'avatar','nickname','gender','age','breed'
-]
+];
 
 function asyncMedia(videoId, audioId) {
   if (!videoId) {
@@ -113,6 +114,37 @@ function asyncMedia(videoId, audioId) {
       })
   })
 }
+
+exports.up = function *(next) {
+  var body = this.request.body;
+  var user = this.session.user;
+  var creation = yield Creation.findOne({
+    _id: body.id
+  }).exec();
+
+  if (!creation) {
+    this.body = {
+      success: false,
+      err: '点赞视频不存在'
+    };
+    return next;
+  }
+
+  if (body.up === 'yes') {
+    creation.votes.push(String(user._id));
+  }
+  else {
+    creation.votes = _.without(creation.votes,String(user._id));
+  }
+
+  creation.up = creation.votes.length;
+
+  yield creation.save(); // 利用yield实现同步
+
+  this.body = {
+    success: true
+  }
+};
 
 // 视频列表
 exports.find = function *(next) {

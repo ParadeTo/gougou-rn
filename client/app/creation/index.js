@@ -48,8 +48,10 @@ var Item = React.createClass({
       accessToken: this.props.user.accessToken
     }
 
+    console.log(row._id);
     request.post(url,body)
       .then((data) => {
+        console.log(data);
         if (data && data.success) {
             that.setState({
               up:up
@@ -171,13 +173,26 @@ var List = React.createClass({
       })
     }
 
+    var user = this.state.user;
     request.get(config.api.base+config.api.creations,{
-      accessToken: this.state.user.accessToken,
+      accessToken: user.accessToken,
       page:page
     })
      .then((data) => {
        if (data && data.success) {
          if (data.data.length > 0) {
+           // 判断当前用户是否对某一个视频点过赞
+           data.data = data.data.map(function(item) {
+             var votes = item.votes || [];
+             if (votes.indexOf(user._id) > -1) {
+               item.voted = true;
+             }
+             else {
+               item.voted = false;
+             }
+             return item;
+           });
+
            var items = cachedResults.items.slice()
            if (page !== 0) {
              items = items.concat(data.data);

@@ -25,6 +25,11 @@ var CreationSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  votes: [String], // 点赞人的id
+  up: {
+    type: Number,
+    default: 0
+  },
 	meta: {
 		createAt: {
 			type: Date,

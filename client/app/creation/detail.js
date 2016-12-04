@@ -17,6 +17,7 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
+  AsyncStorage,
   View
 } from 'react-native'
 
@@ -127,33 +128,24 @@ var Detail = React.createClass({
   },
 
   componentDidMount () {
-    // this._fetchData()
+    var that = this
+    AsyncStorage.getItem('user')
+      .then((data) => {
+        var user
+        if (data) {
+          user = JSON.parse(data)
+        }
+        if (user && user.accessToken) {
+          that.setState({
+            user:user
+          }, function() {
+            that._fetchData(1);
+          })
+        }
+      })
   },
 
   // 获取评论
-  _fetchData() {
-    var that = this
-    var url = config.api.base + config.api.comments
-    request.get(url,{
-      id:123,
-      accessToken:'123a'
-    })
-    .then((data) => {
-      if (data && data.success) {
-        var comments = data.data
-        if (comments && comments.length > 0) {
-          that.setState({
-            comments: comments,
-            dataSource: that.state.dataSource.cloneWithRows(comments)
-          })
-        }
-      }
-    })
-    .catch((error) => {
-      console.log(error)
-    })
-  },
-
   _fetchData(page) {
 
     this.setState({
@@ -161,24 +153,25 @@ var Detail = React.createClass({
     })
 
     request.get(config.api.base + config.api.comments,{
-      accessToken:'adc',
-      creation:124,
-      page:page
+      accessToken: this.state.user.accessToken,
+      creation: this.state.data._id,
+      page: page
     })
      .then((data) => {
-       if (data.success) {
+       if (data && data.success) {
+         if (data.data.length > 0) {
+           var items = cachedResults.items.slice()
 
-         var items = cachedResults.items.slice()
+           items = items.concat(data.data);
+           cachedResults.nextPage += 1;
+           cachedResults.items = items;
+           cachedResults.total = data.total;
 
-         items = items.concat(data.data);
-         cachedResults.nextPage += 1;
-         cachedResults.items = items;
-         cachedResults.total = data.total;
-
-         this.setState({
-           isLoadingTail:false,
-           dataSource : this.state.dataSource.cloneWithRows(cachedResults.items)
-         })
+           this.setState({
+             isLoadingTail:false,
+             dataSource : this.state.dataSource.cloneWithRows(cachedResults.items)
+           })
+         }
        }
      })
      .catch((error) => {
@@ -301,9 +294,11 @@ var Detail = React.createClass({
       isSending:true
     }, function(){
       var body = {
-        accessToken:'abc',
-        creation:'1232',
-        content:this.state.content
+        accessToken: this.state.user.accessToken,
+        comment:{
+          creation: this.state.data._id,
+          content:this.state.content
+        }
       }
       var url = config.api.base + config.api.comments
       request.post(url,body)
@@ -311,13 +306,7 @@ var Detail = React.createClass({
           if (data && data.success) {
             var items = cachedResults.items.slice()
             var content = that.state.content
-            items = [{
-              content:content,
-              replyBy:{
-                nickname:'狗狗狗说',
-                avatar:'http://dummyimage.com/100/b4e1a2)'
-              }
-            }].concat(items);
+            items = data.data.concat(items);
             cachedResults.items = items
             cachedResults.total = cachedResults.total + 1
             that.setState({
